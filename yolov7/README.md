@@ -1,3 +1,28 @@
+
+
+# multi Person Pose detection
+
+## Introduction
+We use yolov7 to detect persons in image and then use mediapipe to detect blaze pose (33 key points) then finally extract coco keypoints from these. 
+
+![pose_dection_pipeline.png](./figure/readme_images/multiperson%20pose%20estimation%201.png)
+
+## Installation
+
+1. Clone the repository
+2. Install the requirements from requirements.txt
+3. Download the yolov7.pt model from [here](https://github.com/WongKinYiu/yolov7/releases/download/v0.1/yolov7.pt) and put it in the root directory of the project
+4. Download the mediapipe using ```pip install mediapipe```
+
+
+## To run the code on your images or videos
+
+1. Put your images or videos in the input folder
+2. Run the code using ```python detect_pose.py --img-dir <path> --video <path>``` and you will see results in runs folder in exp*num* folder
+
+
+
+
 # Official YOLOv7
 
 Implementation of paper - [YOLOv7: Trainable bag-of-freebies sets new state-of-the-art for real-time object detectors](https://arxiv.org/abs/2207.02696)

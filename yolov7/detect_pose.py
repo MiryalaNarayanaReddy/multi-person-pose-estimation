@@ -20,6 +20,7 @@ from utils.general import check_img_size, check_requirements, check_imshow, non_
     scale_coords, xyxy2xywh, strip_optimizer, set_logging, increment_path
 from utils.plots import plot_one_box
 from utils.torch_utils import select_device, load_classifier, time_synchronized, TracedModel
+import os
 
 
 def convert_blaze_to_coco(blazepose_landmarks):
@@ -151,6 +152,11 @@ def detect(save_img=False):
     old_img_b = 1
 
     t0 = time.time()
+    coco_path = str(save_dir) + '/data'
+    os.mkdir(coco_path)
+    os.mkdir(coco_path+ '/images')
+    image_id = 0
+    coco_data = {}
     for path, img, im0s, vid_cap in dataset:
         img = torch.from_numpy(img).to(device)
         img = img.half() if half else img.float()  # uint8 to fp16/32
@@ -180,6 +186,7 @@ def detect(save_img=False):
         if classify:
             pred = apply_classifier(pred, modelc, img, im0s)
 
+        
  
         # Process detections
         for i, det in enumerate(pred):  # detections per image
@@ -192,7 +199,6 @@ def detect(save_img=False):
             save_path = str(save_dir / p.name)  # img.jpg
             txt_path = str(save_dir / 'labels' / p.stem) + ('' if dataset.mode == 'image' else f'_{frame}')  # img.txt
             gn = torch.tensor(im0.shape)[[1, 0, 1, 0]]  # normalization gain whwh
-            
             
             
             if len(det):
@@ -208,10 +214,15 @@ def detect(save_img=False):
                 cropped_img = None
                 
                 # Write results
-                for *xyxy, conf, cls in reversed(det):
+                # create coco dataset
+                image_id += 1
+                plt.imsave(coco_path+ f"/images/{str(image_id).rjust(6,'0')}.jpg",cv2.cvtColor(im0, cv2.COLOR_BGR2RGB))
+                key_points = []
 
-                    if cls:
-                    # if cls==0:
+                for *xyxy, conf, cls in reversed(det): # for bounding box person in image
+
+                    # if cls:
+                    if cls==0: # if person
                         
                         if save_txt:  # Write to file
                             xywh = (xyxy2xywh(torch.tensor(xyxy).view(1, 4)) / gn).view(-1).tolist()  # normalized xywh
@@ -240,8 +251,13 @@ def detect(save_img=False):
                                     continue
 
                                 coco_points = convert_blaze_to_coco(results.pose_landmarks.landmark)
+                                # print("coco points = ",coco_points)
                                 for point in coco_points:
                                     cv2.circle(image, (int(point.x * image.shape[1]), int(point.y * image.shape[0])), 4, (0, 0, 255), 1)
+                                kps = []
+                                for point in coco_points:
+                                    kps.append([int(xyxy[0])+int(point.x * image.shape[1]), int(xyxy[1])+int(point.y * image.shape[0]), 2])
+                                key_points.append(kps)
                                 
                                 # line between eyes
 
@@ -293,16 +309,15 @@ def detect(save_img=False):
                             
                             im0[int(xyxy[1]):int(xyxy[3]), int(xyxy[0]):int(xyxy[2])] = image
 
-                            
                             # plt.imsave(f'{random.randint(10,100)}.jpg' , im0)
 
                             # label = f'{names[int(cls)]} {conf:.2f}'
                             # plot_one_box(xyxy, im0, label=label, color=colors[int(cls)], line_thickness=1)
-                            
-                            
-                        # json.dump(xyxy, open(txt_path + '.json', 'w'))
 
             # Print time (inference + NMS)
+            if len(key_points) is not 0:
+                coco_data[str(image_id)] = {"img":str(image_id).rjust(6,'0')+'.jpg',"key_points":key_points}
+
             print(f'{s}Done. ({(1E3 * (t2 - t1)):.1f}ms) Inference, ({(1E3 * (t3 - t2)):.1f}ms) NMS')
 
             # Stream results
@@ -310,7 +325,8 @@ def detect(save_img=False):
                 cv2.imshow(str(p), im0)
                 cv2.waitKey(1)  # 1 millisecond
             # if cropped_img is not None:
-        
+
+            
 
             # Save results (image with detections)
             if save_img:
@@ -340,6 +356,10 @@ def detect(save_img=False):
         #print(f"Results saved to {save_dir}{s}")
 
     print(f'Done. ({time.time() - t0:.3f}s)')
+
+    with open(coco_path+'/coco_data.json', 'w') as fp:
+        json.dump(coco_data, fp)
+    
 
 
 if __name__ == '__main__':
