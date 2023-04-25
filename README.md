@@ -5,7 +5,7 @@
 ## Introduction
 We use yolov7 to detect persons in image and then use mediapipe to detect blaze pose (33 key points) then finally extract coco keypoints from these. 
 
-![pose_dection_pipeline.png](./figure/readme_images/multiperson%20pose%20estimation%201.png)
+![pose_dection_pipeline.png](./figure/readme_images/multiperson_pose_estimation.png)
 
 ## Installation
 
